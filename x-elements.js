@@ -1,23 +1,23 @@
-class XElement extends HTMLElement {
-	constructor() {
-		super();
-		this.__connected__ = false;
-		this.__bindings__ = {};
+class XElements extends HTMLElement {
+  constructor() {
+    super();
+    this.__connected__ = false;
+    this.__bindings__ = {};
     this.__useShadow__ = false;
-	}
+  }
 
-	static get observedAttributes() {
+  static get observedAttributes() {
     return [];
   }
 
   static get observedProperties() {
-  	return [];
+    return [];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-  	let fnName = "on" + name.charAt(0).toUpperCase() + name.slice(1);
+    let fnName = "on" + name.charAt(0).toUpperCase() + name.slice(1);
 
-  	if (!!this[fnName]) {
+    if (!!this[fnName]) {
       this[fnName](newValue, oldValue)
     } else {
       if (!!this.on && typeof this.on === 'function') {
@@ -29,18 +29,19 @@ class XElement extends HTMLElement {
   bind(element, targetAttr, boundAttr, fn) {
     var bindings = this.__bindings__[targetAttr];
 
-  	if (!bindings) {
-  		bindings = [{element: element, attr: boundAttr, fn: fn || null}];
-  		this.__bindings__[targetAttr] = bindings;
-  	} else {
-  		var existing = bindings.filter((b) => { return b.element === element && b.attr === boundAttr })[0];
-  		if (!existing) {
-  			bindings.push({element: element, attr: boundAttr, fn: fn || null});
-  		} else {
-  			console.warn("Binding already exists", element, targetAttr, boundAttr)
-  		}
-  	}
+    if (!bindings) {
+      bindings = [{element: element, attr: boundAttr, fn: fn || null}];
+      this.__bindings__[targetAttr] = bindings;
+    } else {
+      var existing = bindings.filter((b) => { return b.element === element && b.attr === boundAttr })[0];
+      if (!existing) {
+        bindings.push({element: element, attr: boundAttr, fn: fn || null});
+      } else {
+        console.warn("Binding already exists", element, targetAttr, boundAttr)
+      }
+    }
   }
+
 
   fire(evtType, data) {
     let evt = new CustomEvent(evtType, {detail: data});
@@ -48,53 +49,53 @@ class XElement extends HTMLElement {
   }
 
   __push_bindings__(attr) {
-  	var bindings = this.__bindings__[attr];
-  	
-  	if (!!bindings){
-  		bindings.map((binding) => {
+    var bindings = this.__bindings__[attr];
+    
+    if (!!bindings){
+      bindings.map((binding) => {
         var val = binding.fn === null ? this[attr] : binding.fn(binding.element, binding.attr);
         
         if (binding.element.nodeType !== 3 && binding.element.hasAttribute(binding.attr)) {
           binding.element.setAttribute(binding.attr, val);
         } else {
           binding.element[binding.attr] = val
-  		  }
+        }
       })
-  	}
+    }
   }
 
-	__connect__(name) { 
+  __connect__(name) { 
     if (!this.__connected__) {
       this.__connected__ = true;
-    	this.constructor.observedAttributes.map((attr) => {
-	   		if (!this.hasOwnProperty(attr)) {
-		   		var prop = {};
-		   				prop[attr] = {
-		   					get: () => { return this.getAttribute(attr) },
-		   					set: (value) => { 
-		   						this.setAttribute(attr, value) 
-		   						this.__push_bindings__(attr);
-		   					}
-		   				}
+      this.constructor.observedAttributes.map((attr) => {
+        if (!this.hasOwnProperty(attr)) {
+          var prop = {};
+              prop[attr] = {
+                get: () => { return this.getAttribute(attr) },
+                set: (value) => { 
+                  this.setAttribute(attr, value) 
+                  this.__push_bindings__(attr);
+                }
+              }
 
-		   		Object.defineProperties(this, prop);
-		   	} 
-	   	})
+          Object.defineProperties(this, prop);
+        } 
+      })
 
-	   	this.constructor.observedProperties.map((attr) => {
-   			var prop = {};
-	   				prop[attr] = {
-	   					get: () => { return this[`_${ attr }`] },
-	   					set: (value) => { 
-	   						var oldValue =  this[`_${ attr }`];
-	   						this[`_${ attr }`] = value;
-	   						this.attributeChangedCallback(attr, oldValue, value);
-	   						this.__push_bindings__(attr);
-	   					}
-	   				}
+      this.constructor.observedProperties.map((attr) => {
+        var prop = {};
+            prop[attr] = {
+              get: () => { return this[`_${ attr }`] },
+              set: (value) => { 
+                var oldValue =  this[`_${ attr }`];
+                this[`_${ attr }`] = value;
+                this.attributeChangedCallback(attr, oldValue, value);
+                this.__push_bindings__(attr);
+              }
+            }
 
-	   		Object.defineProperties(this, prop);
-	   	})
+        Object.defineProperties(this, prop);
+      })
 
       if (this.__useShadow__) {
         const shadowRoot = this.attachShadow({mode: 'open'});
@@ -119,16 +120,16 @@ class XElement extends HTMLElement {
         }
       })
 
-    	if (!!this.firstConnected) {
-    		this.firstConnected();
-    	}
+      if (!!this.firstConnected) {
+        this.firstConnected();
+      }
     }
   }
 
   __parseTemplate__(template) {
     // var eventExp = /(on\-([a-z|A-Z]+))=[\"\']\{\{(.+)\}\}[\"\']/
     var eventExp = /on\-([a-z|A-Z]+)/,
-        boundExp = /\{\{([\s|a-z|A-Z|\$|_|\d]+)\}\}/g;
+        boundExp = /\{\{([\s|a-z|A-Z|\$|_|\d|\.]+)\}\}/g;
 
     var attachEvents = (el, evt, val) => {
       var evtName = evt.match(eventExp)[1],
@@ -170,13 +171,17 @@ class XElement extends HTMLElement {
     }
 
     var bindValue = (el, attr, val, tmpl) => {
-      this.bind(el, val.trim(), attr.trim(), (el, attr) => {
+      var bindingAttr = val.trim().split(".")[0];
+
+      this.bind(el, bindingAttr, attr.trim(), (el, attr) => {
         let match;
         let results = tmpl;
         while ((match = boundExp.exec(tmpl)) !== null) {
-          if (this.hasOwnProperty(match[1].trim())) {
-            results = results.replace(match[0], this[match[1].trim()]);
-          }
+          let value = match[1].trim().split(".").reduce((obj, prop) => {
+            return obj && obj.hasOwnProperty(prop) ? obj[prop] : undefined;
+          }, this)
+
+          results = results.replace(match[0], value || "");
         }
 
         return results;
@@ -216,4 +221,4 @@ class XElement extends HTMLElement {
   }
 }
 
-module.exports = XElement;
+module.exports = XElements;
