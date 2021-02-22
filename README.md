@@ -119,14 +119,15 @@ class MyComponent extends XElements {
 
 customElements.define('my-component', MyComponent);
 module.exports = Auth;
-```css
+```
 
 ### CSS
-```
+
   Since shadowDOM is turned off by default with XElements there's no 
   special styling required. You can 'encapsulate' your styles the same 
   way you would anything else, with just simple CSS
 
+```css
   my-component {
     display: block;
   }
