@@ -129,11 +129,11 @@ class XElements extends HTMLElement {
   __parseTemplate__(template) {
     // var eventExp = /(on\-([a-z|A-Z]+))=[\"\']\{\{(.+)\}\}[\"\']/
     var eventExp = /on\-([a-z|A-Z]+)/,
-        boundExp = /\{\{([\s|a-z|A-Z|\$|_|\d|\.]+)\}\}/g;
+        boundExp = /\{\{([\s|a-z|A-Z|\$|_|\d|\.|\'|\"]+)\}\}/g;
 
     var attachEvents = (el, evt, val) => {
       var evtName = evt.match(eventExp)[1],
-          args = val.match(boundExp)[1].split(" ").filter((arg) => arg.trim() !== ""),
+          args = val.match(new RegExp(boundExp, ""))[1].split(" ").filter((arg) => arg.trim() !== ""),
           fnName = args[0],
           fnArgs = args.slice(1);
 
@@ -148,8 +148,12 @@ class XElements extends HTMLElement {
       }
 
       fnArgs = fnArgs.map((arg) => {
-        if (/^[\'\"].*[\'\"]$/.test(arg) || /\d+/.test(arg)) {
-          return arg
+        if (/^[\'\"].*[\'\"]$/.test(arg)) {
+          return arg.replace(/\'|\"/g, '');
+        } 
+
+        if (!isNaN(+arg)) {
+          return +arg;
         }
 
         if (this.hasOwnProperty(arg)) {
