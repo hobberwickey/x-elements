@@ -203,13 +203,13 @@ class XElements extends HTMLElement {
         }
       } else {
         attrs.map((a) => {
-          if (eventExp.test(a.name) && boundExp.test(a.value)) {
-            return attachEvents(el, a.name, a.value);
-          }
-
           let match;
           while ((match = boundExp.exec(a.value)) !== null) {
-            bindValue(el, a.name, match[1], a.value);
+            if (eventExp.test(a.name)) {
+              attachEvents(el, a.name, a.value);
+            } else {
+              bindValue(el, a.name, match[1], a.value);
+            }
           }
         })
       }
